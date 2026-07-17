@@ -1,0 +1,64 @@
+name: Build APK
+
+# Se déclenche à chaque push sur main, et aussi manuellement depuis l'onglet Actions
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Installer Java (requis par Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Créer le projet React Native de base
+        run: npx --yes react-native@0.74.0 init VoicemailApp --version 0.74.0 --skip-install
+
+      - name: Copier le code source dans le projet généré
+        run: |
+          cp -r src/* VoicemailApp/src/ 2>/dev/null || cp -r src VoicemailApp/src
+          mkdir -p VoicemailApp/android/app/src/main/java/com/voicemailapp
+          cp android-native/src/main/java/com/voicemailapp/*.kt \
+             VoicemailApp/android/app/src/main/java/com/voicemailapp/
+          mkdir -p VoicemailApp/android/app/src/main/res/xml
+          cp android-native/res/xml/accessibility_service_config.xml \
+             VoicemailApp/android/app/src/main/res/xml/
+
+      - name: Fusionner AndroidManifest.xml et strings.xml
+        run: python3 scripts/merge-manifest.py VoicemailApp
+
+      - name: Enregistrer le CallScreeningPackage dans MainApplication.kt
+        run: |
+          sed -i 's/PackageList(this).packages.apply {/PackageList(this).packages.apply {\n            add(CallScreeningPackage())/' \
+            VoicemailApp/android/app/src/main/java/com/voicemailapp/MainApplication.kt
+
+      - name: Installer les dépendances npm
+        working-directory: VoicemailApp
+        run: |
+          npm install
+          npm install react-native-sound react-native-audio-recorder-player react-native-fs
+
+      - name: Compiler l'APK
+        working-directory: VoicemailApp/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - name: Publier l'APK comme artefact téléchargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicemail-app-apk
+          path: VoicemailApp/android/app/build/outputs/apk/release/app-release.apk
