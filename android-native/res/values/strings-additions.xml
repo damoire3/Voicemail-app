@@ -1,0 +1,9 @@
+<!-- À ajouter dans android/app/src/main/res/values/strings.xml -->
+<resources>
+    <string name="accessibility_service_description">
+        Permet à Messagerie Vocale de basculer automatiquement en haut-parleur
+        lors de la prise d'un appel manqué, afin d'enregistrer la conversation
+        lorsque l'accès direct au flux d'appel n'est pas autorisé par le
+        fabricant du téléphone.
+    </string>
+</resources>
