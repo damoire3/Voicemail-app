@@ -49,9 +49,8 @@ strings_additions_path = "android-native/res/values/strings-additions.xml"
 with open(strings_additions_path) as f:
     new_strings = f.read()
 
-new_string_lines = "\n".join(
-    line for line in new_strings.splitlines() if "<string" in line
-)
+new_string_blocks = re.findall(r"<string.*?</string>", new_strings, re.DOTALL)
+new_string_lines = "\n".join(new_string_blocks)
 
 with open(strings_path) as f:
     strings = f.read()
